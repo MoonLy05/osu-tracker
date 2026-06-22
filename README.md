@@ -26,7 +26,7 @@ uv sync
 uv run streamlit run dashboard.py
 ```
 
-Construirlo desde docker compose
+O tambien puedes construirlo desde docker compose
 
 ```bash
 docker compose up -d --build
