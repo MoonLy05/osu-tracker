@@ -27,7 +27,7 @@ Posteriormente creamos nuestro entorno de desarrollo, en este caso usando el paq
 
 ------NOTA-------
 
-Cuando ejecutas "recolector.py" consigue los datos del momento y a futuro no recolecta datos viejos o pasados.
+Cuando ejecutas "recolector.py" consigue los datos del momento y a futuro, no recolecta datos viejos o pasados.
 ## Deployment
 
 Pasos para ejecutar el proyecto
