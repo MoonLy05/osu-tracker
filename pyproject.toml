@@ -1,0 +1,12 @@
+[project]
+name = "osu-pp"
+version = "0.1.0"
+description = "Project to collect and analyze osu! performance points (pp) data."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "ossapi>=5.3.5",
+    "pandas>=3.0.3",
+    "streamlit>=1.58.0",
+]
