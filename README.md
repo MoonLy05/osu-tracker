@@ -2,6 +2,19 @@
 # Trackear perfil de Osu!
 
 Proyecto enfocado al seguimiento del progreso de tu cuenta de Osu! usando su propia api que proporciona el juego.
+
+## Tecnologías utilizadas
+
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
+![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+
+- **Python**: Lenguaje principal del proyecto.
+- **Streamlit**: Creación del dashboard web e interfaz de usuario.
+- **Pandas**: Procesamiento y manipulación de datos.
+- **SQLite**: Almacenamiento local del histórico de datos.
+
 ## Conseguir datos
 
 Es necesario hacer una copia al archivo .env.example y renombrarlo como .env y llenarlo con tus keys que te proporciona el juego en las configuraciones de tu cuenta.
