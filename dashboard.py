@@ -8,11 +8,24 @@ load_dotenv()
 api = ossapi.Ossapi(os.getenv("CLIENT_ID"), os.getenv("CLIENT_SECRET"))
 usuario = os.getenv("USERNAME")
 
-conexion = sqlite3.connect("osu_historial.db")
-df = pd.read_sql_query("SELECT * FROM snapshots", conexion)
-conexion.close()
+def obtener_intervalo_refresh():
+    valor = os.getenv("STREAMLIT_REFRESH_SECONDS", "30")
+    try:
+        return max(1, int(valor))
+    except ValueError:
+        return 30
+
+REFRESH_SECONDS = obtener_intervalo_refresh()
+
+def cargar_datos():
+    conexion = sqlite3.connect("osu_historial.db")
+    try:
+        return pd.read_sql_query("SELECT * FROM snapshots", conexion)
+    finally:
+        conexion.close()
 
 st.set_page_config(page_title="Mi progreso osu!", page_icon="🎯", layout="wide")
+
 yo = api.user(usuario)
 col_avatar, col_info = st.columns([1, 4])
 with col_avatar:
@@ -31,31 +44,48 @@ def grafica_metrica(df, campo, titulo, invertir=False):
     st.subheader(f"{titulo} por modo")
     st.altair_chart(chart, use_container_width=True)
 
-df_osu = df[df["modo"] == "osu"].sort_values("momento")
-actual = df_osu.iloc[-1]
-previo = df_osu.iloc[-2]
+@st.fragment(run_every=f"{REFRESH_SECONDS}s")
+def panel_datos():
+    df = cargar_datos()
 
-df_mania = df[df["modo"] == "mania"].sort_values("momento")
-actual_mania = df_mania.iloc[-1]
-previo_mania = df_mania.iloc[-2]
+    if df.empty:
+        st.warning("Aun no hay datos en snapshots. Ejecuta recolector.py para crear el primer registro.")
+        return
 
-c1, c2, c3 = st.columns(3)
-c1.metric("PP (osu)", f"{actual['pp']:.0f}", delta=f"{actual['pp'] - previo['pp']:.0f}")
-c2.metric("Ranking México", f"#{actual['country_rank']}",
-          delta=int(actual['country_rank'] - previo['country_rank']), delta_color="inverse")
-c3.metric("Ranking global", f"#{actual['global_rank']}",
-          delta=int(actual['global_rank'] - previo['global_rank']), delta_color="inverse")
+    df_osu = df[df["modo"] == "osu"].sort_values("momento")
+    df_mania = df[df["modo"] == "mania"].sort_values("momento")
 
-c4, c5, c6 = st.columns(3)
-c4.metric("PP (mania)", f"{actual_mania['pp']:.0f}", delta=f"{actual_mania['pp'] - previo_mania['pp']:.0f}")
-c5.metric("Ranking México", f"#{actual_mania['country_rank']}",
-          delta=int(actual_mania['country_rank'] - previo_mania['country_rank']), delta_color="inverse")
-c6.metric("Ranking global", f"#{actual_mania['global_rank']}",
-          delta=int(actual_mania['global_rank'] - previo_mania['global_rank']), delta_color="inverse")
+    if len(df_osu) < 2 or len(df_mania) < 2:
+        st.info("Se necesitan al menos 2 snapshots por modo para calcular deltas y metricas.")
+        with st.expander("Ver datos actuales"):
+            st.dataframe(df.sort_values("momento"), use_container_width=True)
+        return
 
-tab_pp, tab_rankings = st.tabs(["PP", "Rankings"])
-with tab_pp:
-    grafica_metrica(df, "pp", "Puntos de rendimiento (PP)")
-with tab_rankings:
-    grafica_metrica(df, "country_rank", "Ranking país", invertir=True)
-    grafica_metrica(df, "global_rank", "Ranking global", invertir=True)
+    actual = df_osu.iloc[-1]
+    previo = df_osu.iloc[-2]
+    actual_mania = df_mania.iloc[-1]
+    previo_mania = df_mania.iloc[-2]
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("PP (osu)", f"{actual['pp']:.0f}", delta=f"{actual['pp'] - previo['pp']:.0f}")
+    c2.metric("Ranking México", f"#{actual['country_rank']}",
+              delta=int(actual['country_rank'] - previo['country_rank']), delta_color="inverse")
+    c3.metric("Ranking global", f"#{actual['global_rank']}",
+              delta=int(actual['global_rank'] - previo['global_rank']), delta_color="inverse")
+
+    c4, c5, c6 = st.columns(3)
+    c4.metric("PP (mania)", f"{actual_mania['pp']:.0f}", delta=f"{actual_mania['pp'] - previo_mania['pp']:.0f}")
+    c5.metric("Ranking México", f"#{actual_mania['country_rank']}",
+              delta=int(actual_mania['country_rank'] - previo_mania['country_rank']), delta_color="inverse")
+    c6.metric("Ranking global", f"#{actual_mania['global_rank']}",
+              delta=int(actual_mania['global_rank'] - previo_mania['global_rank']), delta_color="inverse")
+
+    tab_pp, tab_rankings = st.tabs(["PP", "Rankings"])
+    with tab_pp:
+        grafica_metrica(df, "pp", "Puntos de rendimiento (PP)")
+    with tab_rankings:
+        grafica_metrica(df, "country_rank", "Ranking país", invertir=True)
+        grafica_metrica(df, "global_rank", "Ranking global", invertir=True)
+
+
+panel_datos()

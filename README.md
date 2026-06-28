@@ -45,6 +45,18 @@ O tambien puedes construirlo desde docker compose
 docker compose up -d --build
 ```
 
+Version desarrollo (hot reload de codigo + refresco de datos cada 5s):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Version produccion (sin hot reload + refresco de datos cada 60s):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
 ## Vista previa del dashboard
 ![Vista del dashboard](assets/dashboard.png)
 

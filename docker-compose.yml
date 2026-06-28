@@ -4,8 +4,6 @@ services:
     container_name: osu-pp
     ports:
       - "8051:8051"
-    volumes:
-      - .osu_historial.db:/app/.osu_historial.db
     env_file:
       - .env
     restart: unless-stopped
