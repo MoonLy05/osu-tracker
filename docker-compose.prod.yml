@@ -1,8 +1,0 @@
-services:
-  osu-pp:
-    volumes:
-      - ./osu_historial.db:/app/osu_historial.db
-    environment:
-      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
-      - STREAMLIT_SERVER_RUN_ON_SAVE=false
-      - STREAMLIT_REFRESH_SECONDS=60

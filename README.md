@@ -1,67 +1,146 @@
+# osu-pp
 
-# Trackear perfil de Osu!
+Proyecto para recolectar, guardar y visualizar progreso de osu! usando FastAPI, SQLite y una interfaz web estática.
 
-Proyecto enfocado al seguimiento del progreso de tu cuenta de Osu! usando su propia api que proporciona el juego.
+## Qué hace
 
-## Tecnologías utilizadas
+- Consulta datos de usuario desde la API de osu! con ossapi.
+- Guarda snapshots de estadísticas por modo en SQLite.
+- Guarda historial de daily challenges.
+- Expone una API para leer usuario, estadísticas y daily challenges.
+- Sirve una interfaz web estática en la ruta raíz.
 
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
-![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
-![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+## Tecnologías
 
-- **Python**: Lenguaje principal del proyecto.
-- **Streamlit**: Creación del dashboard web e interfaz de usuario.
-- **Pandas**: Procesamiento y manipulación de datos.
-- **SQLite**: Almacenamiento local del histórico de datos.
+- Python 3.12+
+- FastAPI
+- SQLite
+- ossapi
+- uvicorn
+- Tailwind CSS por CDN en el frontend
 
-## Conseguir datos
+## Estructura
 
-Es necesario hacer una copia al archivo .env.example y renombrarlo como .env y llenarlo con tus keys que te proporciona el juego en las configuraciones de tu cuenta.
+```text
+osu-pp/
+├── app/
+│   ├── database.py
+│   ├── main.py
+│   ├── recolector.py
+│   ├── routers/
+│   │   ├── stats.py
+│   │   └── user.py
+│   └── services/
+│       └── ossapi.py
+├── public/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── docker-compose.yml
+├── Dockerfile
+└── pyproject.toml
+```
 
-(CLIENT_ID, CLIENT_SECRET, USERNAME)
+## Variables de entorno
 
-https://osu.ppy.sh/
+Crea un archivo `.env` en la raíz del proyecto con estas variables:
 
-Posteriormente creamos nuestro entorno de desarrollo, en este caso usando el paquete/libreria "uv" que esta enfocada al lenguaje de programacion python, despues ejecutamos "recolector.py".
+```env
+CLIENT_ID=tu_client_id
+CLIENT_SECRET=tu_client_secret
+USERNAME=tu_usuario_de_osu
+MODOS=osu,mania
+```
 
-------NOTA-------
+`MODOS` debe ir separado por comas. Si quieres otros modos, agrega más valores, por ejemplo `osu,mania,taiko,fruits`.
 
-Cuando ejecutas "recolector.py" consigue los datos del momento y a futuro, no recolecta datos viejos o pasados.
-## Deployment
+## Instalación local
 
-Pasos para ejecutar el proyecto
+Instala las dependencias con `uv`:
 
 ```bash
 uv sync
 ```
-```bash
-uv run streamlit run dashboard.py
-```
 
-O tambien puedes construirlo desde docker compose
+## Ejecutar la API
 
-```bash
-docker compose up -d --build
-```
-
-Version desarrollo (hot reload de codigo + refresco de datos cada 5s):
+Levanta el servidor desde la raíz del proyecto:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8051
 ```
 
-Version produccion (sin hot reload + refresco de datos cada 60s):
+La aplicación quedará disponible en:
+
+```text
+http://127.0.0.1:8051
+```
+
+## Ejecutar el recolector
+
+Para guardar snapshots en SQLite, ejecuta el recolector como módulo:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+uv run python -m app.recolector
 ```
 
-## Vista previa del dashboard
-![Vista del dashboard](assets/dashboard.png)
+## Ejecutar con Docker
 
-## Automatizar la recoleccion de datos (Crontab)
-El recolector.py solo guarda los datos del momento en que se ejecuta, así que para construir un histórico hay que correrlo automáticamente cada cierto tiempo con cron. Primero asegúrate de tener cron instalado y activo (en Debian/Ubuntu suele venir; en Arch/CachyOS se instala con cronie). Luego edita tus tareas con crontab -e y agrega la línea de abajo, ajustando la ruta a donde tengas el proyecto.
+Construye y levanta el contenedor:
+
 ```bash
-*/30 * * * * cd /ruta/a/osu-tracker && /ruta/a/osu-tracker/.venv/bin/python recolector.py >> cron.log 2>&1
+docker compose up --build
 ```
+
+La app se expone en el puerto `8051`.
+
+## Endpoints
+
+### GET /
+
+Sirve el frontend estático desde `public/index.html`.
+
+### GET /user
+
+Devuelve el usuario configurado en `USERNAME`.
+
+### GET /daily_challenges
+
+Devuelve el historial de daily challenges guardado en SQLite.
+
+### GET /stats
+
+Devuelve todos los snapshots guardados.
+
+### GET /stats/{modo}
+
+Devuelve el historial filtrado por modo.
+
+Ejemplo:
+
+```text
+/stats/osu
+```
+
+## Base de datos
+
+La base de datos SQLite se crea automáticamente en:
+
+```text
+app/data/osu_historial.db
+```
+
+Las tablas principales son:
+
+- `snapshots`
+- `daily_challenges`
+
+## Frontend
+
+El frontend está en `public/` y usa Tailwind CSS por CDN junto con estilos propios para una apariencia tipo magical girl.
+
+## Notas
+
+- El servidor FastAPI monta `public/` como contenido estático en la raíz.
+- Si cambias la estructura del proyecto, revisa la ruta de `StaticFiles` en `app/main.py`.
+- El recolector y los routers usan imports del paquete `app`, así que conviene ejecutar siempre desde la raíz del proyecto.

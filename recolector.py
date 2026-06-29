@@ -1,65 +1,37 @@
-import ossapi, os, sqlite3
+from app.services.ossapi import api, usuario, modos
 from datetime import datetime
-from dotenv import load_dotenv
+from app.database import guardar_snapshot, ultima_snapshot, leer_ultimo_daily_challenge, guardar_daily_challenge
 
-load_dotenv()
-
-api = ossapi.Ossapi(os.getenv("CLIENT_ID"), os.getenv("CLIENT_SECRET"))
-
-usuario = os.getenv("USERNAME")
-modos = ["osu", "mania"]
-
-conexion = sqlite3.connect("osu_historial.db")
-cursor = conexion.cursor()
-
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS snapshots (
-        id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        momento        TEXT,
-        modo           TEXT,
-        pp             REAL,
-        global_rank    INTEGER,
-        country_rank   INTEGER,
-        nivel          INTEGER,
-        accuracy       REAL,
-        play_count     INTEGER,
-        play_time      INTEGER,
-        maximum_combo  INTEGER
+ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+dc = api.user(usuario).daily_challenge_user_stats
+ultima_dc = leer_ultimo_daily_challenge()
+cambio_dc = ultima_dc is None or (
+    ultima_dc['daily_streak_current'] != dc.daily_streak_current or
+    ultima_dc['daily_streak_best'] != dc.daily_streak_best or
+    ultima_dc['playcount'] != dc.playcount or
+    ultima_dc['top_10p_placements'] != dc.top_10p_placements or
+    ultima_dc['top_50p_placements'] != dc.top_50p_placements
+)
+if cambio_dc:
+    guardar_daily_challenge(
+        ahora, dc.daily_streak_current, dc.daily_streak_best,
+        dc.weekly_streak_current, dc.weekly_streak_best,
+        dc.playcount, dc.top_10p_placements, dc.top_50p_placements
     )
-""")
 
 for modo in modos:
-    cuenta = api.user(usuario, mode=modo)
-    s = cuenta.statistics
+    user = api.user(usuario, mode=modo)
+    s = user.statistics
 
-    cursor.execute(
-        "SELECT pp, global_rank, country_rank FROM snapshots "
-        "WHERE modo = ? ORDER BY momento DESC LIMIT 1",
-        (modo,)
-    )
-    ultimo = cursor.fetchone()
-
-    cambio = (
-        ultimo is None
-        or ultimo[0] != s.pp
-        or ultimo[1] != s.global_rank
-        or ultimo[2] != s.country_rank
+    ultima = ultima_snapshot(modo)
+    cambio = ultima is None or (
+        ultima['pp'] != s.pp or
+        ultima['global_rank'] != s.global_rank or
+        ultima['country_rank'] != s.country_rank
     )
 
     if cambio:
-        cursor.execute("""
-            INSERT INTO snapshots
-            (momento, modo, pp, global_rank, country_rank, nivel,
-             accuracy, play_count, play_time, maximum_combo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            datetime.now().isoformat(timespec="seconds"), modo,
-            s.pp, s.global_rank, s.country_rank, s.level.current,
+        guardar_snapshot(ahora,
+            modo, s.pp, s.global_rank, s.country_rank, s.level.current,
             s.accuracy, s.play_count, s.play_time, s.maximum_combo
-        ))
-        print(f"Cambio en {modo}: {s.pp:.0f}pp, Global #{s.global_rank}, Mexico #{s.country_rank} -> guardado {datetime.now().isoformat(timespec='seconds')}")
-    else:
-        print(f"Sin cambios en {modo}, no se guarda nada {datetime.now().isoformat(timespec='seconds')}")
-        
-conexion.commit()
-conexion.close()
+        )

@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 8051
 
-CMD ["uv", "run", "streamlit", "run", "dashboard.py", "--server.port=8051", "--server.address=0.0.0.0"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8051"]

@@ -1,8 +1,0 @@
-services:
-  osu-pp:
-    volumes:
-      - ./:/app
-    environment:
-      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll
-      - STREAMLIT_SERVER_RUN_ON_SAVE=true
-      - STREAMLIT_REFRESH_SECONDS=5
